@@ -6,8 +6,6 @@
 ***********************************************************************************************************************/
 
 #include "core/ip_address.h"
-
-
 #include "core/impl/platform_selector.h"
 #include "exception/network_exception.h"
 
@@ -23,36 +21,58 @@ namespace obelisk {
         return inet_pton(AF_INET6, addr.c_str(), &address);
     }
 
-    [[maybe_unused]] ip_address::ip_address(const std::string &addr) : address_(addr){
+    [[maybe_unused]] ip_address::ip_address(const std::string &addr){
         if(is_v4(addr))
+        {
             v4_ = true;
-        else if(is_v6(addr))
+            in_addr data{};
+            if(!inet_pton(AF_INET, addr.c_str(), &data)) THROW(obelisk::network_exception, strerror(errno), "Obelisk");
+            addr_data_ = malloc(sizeof (in_addr));
+            memcpy(addr_data_, &data, sizeof(in_addr));
+        }
+        else if(is_v6(addr)){
             v4_ = false;
+            in6_addr data{};
+            if(!inet_pton(AF_INET6, addr.c_str(), &data))
+                THROW(obelisk::network_exception, strerror(errno), "Obelisk");
+            addr_data_ = malloc(sizeof (in6_addr));
+            memcpy(addr_data_, &data, sizeof(in6_addr));
+        }
         else
             THROW(obelisk::network_exception, "Invalid address!", "Obelisk");
     }
 
-    [[maybe_unused]] bool ip_address::ip_v4() const noexcept {
+    [[maybe_unused]] bool ip_address::is_v4() const noexcept {
         return v4_;
     }
 
-    [[maybe_unused]] bool ip_address::ip_v6() const noexcept {
+    [[maybe_unused]] bool ip_address::is_v6() const noexcept {
         return !v4_;
     }
 
-    ip_address::ip_address(sockaddr_in addr) {
+    ip_address::ip_address(in_addr addr) {
         v4_ = true;
+        addr_data_ = malloc(sizeof(addr));
+        memcpy(addr_data_, &addr, sizeof(addr));
     }
 
-    ip_address::ip_address(sockaddr_in6 addr) {
+    ip_address::ip_address(in6_addr addr) {
         v4_ = false;
+        addr_data_ = malloc(sizeof (addr));
+        memcpy(addr_data_, &addr, sizeof(addr));
     }
 
-    sockaddr_in ip_address::address_v4() {
-        return sockaddr_in();
+    ip_address::~ip_address(){
+        if(addr_data_) {
+            free(addr_data_);
+        }
     }
 
-    sockaddr_in6 ip_address::address_v6() {
-        return sockaddr_in6();
+    in_addr ip_address::address_v4() const {
+        return *(in_addr*)addr_data_;
+    }
+
+    in6_addr ip_address::address_v6() const {
+        return *(in6_addr*)addr_data_;
     }
 } // obelisk

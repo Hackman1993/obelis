@@ -1,19 +1,20 @@
 /***********************************************************************************************************************
  * @author Hackman Lo
- * @file mac_io.h
+ * @file passive_data.h
  * @description 
- * @created_at 2023-08-30
+ * @created_at 2023-08-31
 ***********************************************************************************************************************/
 
-#ifndef OBELIS_MAC_IO_H
-#define OBELIS_MAC_IO_H
-
+#ifndef OBELISK_PASSIVE_DATA_H
+#define OBELISK_PASSIVE_DATA_H
+#include "platform_selector.h"
 namespace obelisk {
 
-    class mac_io {
-
+    struct passive_data_base {
+        SOCKET_TYPE* handle_ = nullptr;
+        io_handler* handler_ = nullptr;
     };
 
 } // obelisk
 
-#endif //OBELIS_MAC_IO_H
+#endif //OBELISK_PASSIVE_DATA_H

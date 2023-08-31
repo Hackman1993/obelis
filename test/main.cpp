@@ -5,39 +5,35 @@
 #include "core/listener.h"
 #include "core/ip_address.h"
 #include "core/impl/platform_selector.h"
+#include "core/impl/io_context.h"
+#include "http_server.h"
+#include <thread>
+#include <vector>
+
+class test{
+    ~test(){
+        std::cout << "Free" << std::endl;
+    }
+};
 int main()
 {
     try{
-
-        WSAData wsd{};
-        WSAStartup(MAKEWORD(2,2), &wsd);
-        std::cout << sizeof(sockaddr_in) << std::endl;
-        std::cout << sizeof(sockaddr_in6) << std::endl;
-
-        struct addrinfo hints;
-        struct addrinfo *result;
-        int s;
-
-        memset(&hints, 0, sizeof(struct addrinfo));
-        hints.ai_family = AF_INET6;
-        hints.ai_socktype = SOCK_STREAM;
-        hints.ai_protocol = IPPROTO_TCP;
-
-        s = getaddrinfo("www.baidu.com", "", &hints, &result);
-        if (s != 0) {
-
-            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
-            exit(EXIT_FAILURE);
-        }
-
         /* getaddrinfo() returns a list of address structures.
            Try each address until we successfully bind(2).
            If socket(2) (or bind(2)) fails, we (close the socket
            and) try the next address. */
+        obelisk::io_context context;
+        obelisk::http_server server(context);
+        server.listen("127.0.0.1", 3308);
+        std::vector<std::thread> threads;
+        threads.reserve(3);
+        for(int i=0; i < 3; i++){
+            threads.emplace_back([&](){
+                context.run();
+            });
+        }
+        while (true);
 
-        freeaddrinfo(result);           /* No longer needed */
-        obelisk::listener listener;
-//        listener.listen(3307, "www.baidu.com");
 //        int listenfd, connfd, efd, ret;
 //        listenfd = socket(AF_INET, SOCK_STREAM, 0);
 //        sockaddr_in addr{};
