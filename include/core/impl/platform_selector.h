@@ -9,6 +9,10 @@
 
 
 #if defined(__linux__)
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
 #elif defined(_WIN32)
 #include <winsock2.h>
 #include <Ws2tcpip.h>
