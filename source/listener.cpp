@@ -12,7 +12,7 @@
 #include <utility>
 #include "exception/network_exception.h"
 #include "core/impl/platform_selector.h"
-#include "core/impl/io_context.h"
+#include "core/io_context.h"
 
 namespace obelisk {
     void listener::listen(unsigned short port, const std::string &addr = "") {
@@ -55,12 +55,11 @@ namespace obelisk {
     }
 
     listener::listener(io_context& ctx) : ctx_(ctx){
-        passive_.handle_ = &socket_;
         passive_.handler_ = this;
     }
 
     void listener::_handle(const passive_data_base& data) {
-        auto accepted_ = accept(*data.handle_, nullptr, nullptr);
+        auto accepted_ = accept(socket_, nullptr, nullptr);
         if(callback_)
             callback_(accepted_);
     }

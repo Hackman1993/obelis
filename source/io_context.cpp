@@ -5,7 +5,7 @@
  * @created_at 2023-08-31
 ***********************************************************************************************************************/
 #include <iostream>
-#include "core/impl/io_context.h"
+#include "core/io_context.h"
 #include "core/impl/platform_selector.h"
 #include "exception/network_exception.h"
 #include "core/io_handler.h"
@@ -26,7 +26,6 @@ namespace obelisk {
                 auto *data = (passive_data_base *)events[i].udata;
                 data->handler_->_handle(*data);
             }
-            std::cout << "TRIGGERED" << std::endl;
         }
     }
 

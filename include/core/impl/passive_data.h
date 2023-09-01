@@ -9,12 +9,10 @@
 #define OBELISK_PASSIVE_DATA_H
 #include "platform_selector.h"
 namespace obelisk {
-
     struct passive_data_base {
-        SOCKET_TYPE* handle_ = nullptr;
         io_handler* handler_ = nullptr;
+        struct kevent event_{};
     };
-
 } // obelisk
 
 #endif //OBELISK_PASSIVE_DATA_H

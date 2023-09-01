@@ -8,7 +8,7 @@
 #ifndef OBELISK_HTTP_SERVER_H
 #define OBELISK_HTTP_SERVER_H
 #include "core/listener.h"
-#include "core/impl/io_context.h"
+#include "core/io_context.h"
 
 namespace obelisk {
 
