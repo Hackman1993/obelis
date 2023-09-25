@@ -11,11 +11,11 @@
 
 namespace obelisk {
 
-    class passive_data_base;
+    class context_data_core;
 
     class io_handler {
     public:
-        virtual void _handle(const passive_data_base&) = 0;
+        virtual void _handle(const context_data_core&) = 0;
         virtual ~io_handler() = default;
     };
 

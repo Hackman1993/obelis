@@ -42,8 +42,12 @@ install(EXPORT ${PROJECT_NAME}-targets NAMESPACE ${PROJECT_NAME}:: DESTINATION s
 #
 #file(GLOB_RECURSE TEST_HEADERS test/*.h test/*.hpp)
 #file(GLOB_RECURSE TEST_SOURCES test/*.cpp test/*.cc)
+
 file(GLOB_RECURSE TEST_SOURCES test/*.h test/*.hpp test/*.cpp test/*.cc)
 add_executable(${PROJECT_NAME}_test ${TEST_SOURCES} )
 find_package(sahara REQUIRED)
 target_include_directories(${PROJECT_NAME}_test PRIVATE include)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE $<$<BOOL:${WIN32}>:ws2_32> obelisk Boost::json Boost::locale sahara::sahara fmt::fmt)
+target_link_libraries(${PROJECT_NAME}_test PRIVATE
+        $<$<BOOL:${WIN32}>:ws2_32>
+        $<$<BOOL:${WIN32}>:Mswsock>
+        obelisk Boost::json Boost::locale sahara::sahara fmt::fmt)

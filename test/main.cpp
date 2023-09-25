@@ -24,7 +24,7 @@ int main()
            and) try the next address. */
         obelisk::io_context context;
         obelisk::http_server server(context);
-        server.listen("127.0.0.1", 3308);
+        server.listen("0.0.0.0", 3308);
         std::vector<std::thread> threads;
         threads.reserve(3);
         for(int i=0; i < 3; i++){

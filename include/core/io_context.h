@@ -8,6 +8,7 @@
 #ifndef OBELISK_IO_CONTEXT_H
 #define OBELISK_IO_CONTEXT_H
 #include <vector>
+#include <thread>
 #include <functional>
 #include <unordered_map>
 #include "core/impl/platform_selector.h"
@@ -15,11 +16,11 @@ namespace obelisk {
 
     class io_context {
     public:
-        io_context();
+        io_context(std::uint32_t threads = std::thread::hardware_concurrency() + 2);
         void run();
-        [[nodiscard]] int handle() const;
+        [[nodiscard]] CONTEXT_TYPE handle() const;
     protected:
-        int ctx_;
+        CONTEXT_TYPE ctx_;
     };
 
 } // obelisk

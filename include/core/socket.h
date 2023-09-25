@@ -11,8 +11,9 @@
 #include "impl/passive_data.h"
 #include "io_context.h"
 #include "impl/platform_selector.h"
+#include <memory>
 namespace obelisk {
-    struct socket_passive : public passive_data_base{
+    struct socket_passive : public context_data_core{
 
     };
     class socket : public io_handler, std::enable_shared_from_this<socket> {
@@ -21,12 +22,13 @@ namespace obelisk {
 
     protected:
     public:
-        void _handle(const passive_data_base &base) override;
+        void _handle(const context_data_core &base) override;
 
     protected:
         io_context &ctx_;
         SOCKET_TYPE socket_;
-        struct kevent event_{};
+        //TODO: MACOS
+        //struct kevent event_{};
         socket_passive passive_;
     };
 

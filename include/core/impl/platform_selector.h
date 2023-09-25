@@ -16,6 +16,11 @@
 #elif defined(_WIN32)
 #include <winsock2.h>
 #include <Ws2tcpip.h>
+#include <mswsock.h>
+#define SOCKET_TYPE SOCKET
+#define CONTEXT_TYPE HANDLE
+#define INVALID_CONTEXT INVALID_HANDLE_VALUE
+#define LASTERROR GetLastError()
 #else
 #include <netdb.h>
 #include <fcntl.h>

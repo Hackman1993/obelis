@@ -12,11 +12,12 @@
 #include "ip_address.h"
 #include "io_handler.h"
 #include "impl/passive_data.h"
+#include "impl/platform_selector.h"
 namespace obelisk {
 
     class io_context;
 
-    struct listen_passive : public passive_data_base{
+    struct listen_passive : public context_data_core{
 
     };
 
@@ -26,13 +27,14 @@ namespace obelisk {
         explicit listener(io_context& ctx);
         void listen(unsigned short port, const std::string& addr);
         void listen(const ip_address& addr, unsigned short port);
-        void _handle(const passive_data_base &handler) override;
+        void _handle(const context_data_core &handler) override;
         void set_handler(listener_callback callback);
 
     protected:
         io_context& ctx_;
         listen_passive passive_;
-        struct kevent changes{};
+        //TODO: MACOS
+        //struct kevent changes{};
         listener_callback callback_;
         SOCKET_TYPE socket_ = INVALID_SOCKET;
     };
