@@ -17,6 +17,7 @@ namespace obelisk {
 
         io_handler* handler_ = nullptr;
         SOCKET_TYPE sock_ = INVALID_SOCKET;
+        bool del_:1 = true;
 
 #if !defined(__linux__)&& !defined(_WIN32)
         struct kevent event_{};

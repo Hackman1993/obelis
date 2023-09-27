@@ -12,8 +12,8 @@ namespace obelisk {
         listener_.set_handler(std::bind(&http_server::accepted_, this, std::placeholders::_1));
     }
 
-    void http_server::accepted_(SOCKET_TYPE sock) {
-        new socket(ctx_, sock);
+    void http_server::accepted_(std::shared_ptr<socket> sock) {
+        sock_ = sock;
     }
 
     void http_server::listen(const std::string& address, unsigned short port) {

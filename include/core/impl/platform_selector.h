@@ -32,6 +32,8 @@
 #include <unistd.h>
 #define SOCKET_TYPE int
 #define INVALID_SOCKET -1
+#define LASTERROR errno
+#define CONTEXT_TYPE int
 #endif
 #define OBELISK_MAX_LISTEN_CONNECTION SOMAXCONN
 

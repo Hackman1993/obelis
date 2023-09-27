@@ -5,6 +5,7 @@
  * @created_at 2023-08-30
 ***********************************************************************************************************************/
 
+#include <cerrno>
 #include "core/ip_address.h"
 #include "core/impl/platform_selector.h"
 #include "exception/network_exception.h"

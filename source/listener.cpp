@@ -10,7 +10,8 @@
 #include "core/ip_address.h"
 #include <iostream>
 #include <utility>
-#include "exception/network_exception.h"
+#include "core/socket.h"
+
 #include "core/impl/platform_selector.h"
 #include "core/io_context.h"
 #include "core/impl/socket_setting.h"
@@ -29,8 +30,11 @@ namespace obelisk {
             addr_in.sin_family = AF_INET;
             addr_in.sin_port = htons(port);
             addr_in.sin_addr = addr.address_v4();
-            accept_socket = socket(addr_in.sin_family, SOCK_STREAM, IPPROTO_TCP);
+#ifdef _WIN32
             accept_socket = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
+#else
+            accept_socket = ::socket(addr_in.sin_family, SOCK_STREAM, IPPROTO_TCP);
+#endif
             if (accept_socket == INVALID_SOCKET) {
                 THROW(obelisk::network_exception, std::system_category().message(LASTERROR), "Obelisk");
             }
@@ -41,7 +45,7 @@ namespace obelisk {
             addr_in.sin6_family = AF_INET6;
             addr_in.sin6_port = htons(port);
             addr_in.sin6_addr = addr.address_v6();
-            accept_socket = socket(addr_in.sin6_family, SOCK_STREAM, IPPROTO_TCP);
+            accept_socket = ::socket(addr_in.sin6_family, SOCK_STREAM, IPPROTO_TCP);
             if (accept_socket == INVALID_SOCKET)
                 THROW(obelisk::network_exception, strerror(errno), "Obelisk");
             if (bind(accept_socket, reinterpret_cast<const sockaddr *>(&addr_in), sizeof(sockaddr_in6)) == -1)
@@ -52,14 +56,9 @@ namespace obelisk {
         }
         socket_ = accept_socket;
         socket_setting::set_nonblocking(socket_);
-        // TODO: MACOS
-//        EV_SET(&changes, socket_, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, &passive_);
-//        if (kevent(ctx_.handle(), &changes, 1, nullptr, 0, nullptr) == -1)
-//            THROW(obelisk::network_exception, strerror(errno), "Obelisk");
-
-
         auto context = new context_data_core();
         context->handler_ = this;
+#ifdef _WIN32
         context->buffer_ = malloc((sizeof(sockaddr_in) + 16) * 2);
         context->sock_ = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);;
         if (CreateIoCompletionPort((HANDLE) socket_, ctx_.handle(), 0, 0) == INVALID_HANDLE_VALUE)
@@ -71,20 +70,33 @@ namespace obelisk {
             if (WSAGetLastError() != ERROR_IO_PENDING)
                 THROW(obelisk::network_exception, strerror(errno), "Obelisk");
         }
+#elif defined(__linux__)
+        // TODO: Linux
+#else
+        struct kevent change{};
+        EV_SET(&change, socket_, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, &passive_);
+        ctx_.append_event(change);
+#endif
+
+
+
     }
 
     listener::listener(io_context &ctx) : ctx_(ctx) {
         passive_.handler_ = this;
     }
 
-    void listener::_handle(const context_data_core &context) {
-#ifndef WIN32_
+    void listener::_handle(context_data_core &context) {
+#ifdef _WIN32
         free(context.buffer_);
 #else
         context.sock_ = accept(socket_, nullptr, nullptr);
 #endif
+        if(context.sock_ == INVALID_SOCKET)
+            return;
+
         if (callback_)
-            callback_(context.sock_);
+            callback_(std::make_shared<socket>(ctx_, context.sock_));
     }
 
     void listener::set_handler(listener_callback callback) {

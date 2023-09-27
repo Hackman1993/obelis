@@ -13,23 +13,24 @@
 #include "impl/platform_selector.h"
 #include <memory>
 namespace obelisk {
-    struct socket_passive : public context_data_core{
-
-    };
     class socket : public io_handler, std::enable_shared_from_this<socket> {
     public:
         socket(io_context &context, SOCKET_TYPE sock);
 
     protected:
     public:
-        void _handle(const context_data_core &base) override;
+        void _handle(context_data_core &base) override;
 
     protected:
         io_context &ctx_;
         SOCKET_TYPE socket_;
+        context_data_core ctx_data_{};
         //TODO: MACOS
-        //struct kevent event_{};
-        socket_passive passive_;
+#ifdef _WIN32
+#elif defined(__linux__)
+#else
+        struct kevent event_{};
+#endif
     };
 
 } // obelisk

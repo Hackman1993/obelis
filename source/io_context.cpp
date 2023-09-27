@@ -29,27 +29,30 @@ namespace obelisk {
 
     void io_context::run() {
         context_data_core *ctxd = nullptr;
-
-        //TODO: MACOS
-//        struct kevent events[32] = {0};
-//        int ready_cnt;
-//        while((ready_cnt = kevent(ctx_, nullptr, 0, events, 32, nullptr)) != -1){
-//            for (std::uint32_t i = 0; i < ready_cnt; i++) {
-//                auto *data = (context_data_core *)events[i].udata;
-//                data->handler_->_handle(*data);
-//            }
-//        }
-
-
+#ifdef _WIN32
         DWORD lpNumberOfBytesTransferred = 0;
         void *lpCompletionKey = nullptr;
         while (true) {
-
             if(GetQueuedCompletionStatus(ctx_, &lpNumberOfBytesTransferred, (PULONG_PTR) &lpCompletionKey, (LPOVERLAPPED *) &ctxd, INFINITE)){
                 if(ctxd->handler_)
                     ctxd->handler_->_handle(*ctxd);
             }
         }
+#elif defined(__linux__)
+        //TODO:Linux
+#else
+        struct kevent events[32] = {0};
+        int ready_cnt;
+        while((ready_cnt = kevent(ctx_, nullptr, 0, events, 32, nullptr)) != -1){
+            for (std::uint32_t i = 0; i < ready_cnt; i++) {
+                auto *data = (context_data_core *)events[i].udata;
+                data->handler_->_handle(*data);
+            }
+        }
+#endif
+
+
+
     }
 
     CONTEXT_TYPE io_context::handle() const {

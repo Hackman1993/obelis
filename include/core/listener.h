@@ -16,25 +16,24 @@
 namespace obelisk {
 
     class io_context;
+    class socket;
 
-    struct listen_passive : public context_data_core{
-
-    };
-
-    using listener_callback = std::function<void (SOCKET_TYPE)>;
+    using listener_callback = std::function<void (std::shared_ptr<socket>)>;
     class listener : public io_handler{
     public:
         explicit listener(io_context& ctx);
         void listen(unsigned short port, const std::string& addr);
         void listen(const ip_address& addr, unsigned short port);
-        void _handle(const context_data_core &handler) override;
+        void _handle(context_data_core &handler);
         void set_handler(listener_callback callback);
 
     protected:
         io_context& ctx_;
-        listen_passive passive_;
-        //TODO: MACOS
-        //struct kevent changes{};
+        context_data_core passive_;
+#ifdef _WIN32
+#elif defined(__linux__)
+#else
+#endif
         listener_callback callback_;
         SOCKET_TYPE socket_ = INVALID_SOCKET;
     };

@@ -11,7 +11,7 @@
 #include "core/io_context.h"
 
 namespace obelisk {
-
+    class socket;
     class http_server {
     public:
         explicit http_server(io_context& context);
@@ -19,7 +19,10 @@ namespace obelisk {
     protected:
         io_context& ctx_;
         listener listener_;
-        void accepted_(SOCKET_TYPE sock);
+        void accepted_(std::shared_ptr<socket> sock);
+        std::atomic_int32_t alive_count_;
+
+        std::shared_ptr<socket> sock_;
     };
 
 } // obelisk
