@@ -41,12 +41,22 @@ namespace obelisk {
 #elif defined(__linux__)
         //TODO:Linux
 #else
-        struct kevent events[32] = {0};
-        int ready_cnt;
-        while((ready_cnt = kevent(ctx_, nullptr, 0, events, 32, nullptr)) != -1){
-            for (std::uint32_t i = 0; i < ready_cnt; i++) {
-                auto *data = (context_data_core *)events[i].udata;
-                data->handler_->_handle(*data);
+        int ready_cnt = 0;
+        while(ready_cnt != -1){
+            struct kevent evt{};
+            ready_cnt = kevent(ctx_, nullptr, 0, &evt, 1, nullptr);
+            if(ready_cnt ==1)
+            {
+                ctxd = (context_data_core *)evt.udata;
+                if(ctxd->lock_.try_lock()){
+                    if((evt.flags & EV_EOF) == EV_EOF){
+                        ctxd->event_.type_ = event_type::DISCONNECTED;
+                    }
+                    if (ctxd && ctxd->handler_!= nullptr){
+                        ctxd->handler_->_handle(*ctxd);
+                    }
+                    ctxd->lock_.unlock();
+                }
             }
         }
 #endif

@@ -56,8 +56,29 @@ namespace obelisk {
         }
         socket_ = accept_socket;
         socket_setting::set_nonblocking(socket_);
-        auto context = new context_data_core();
-        context->handler_ = this;
+        passive_.handler_ = shared_from_this();
+    }
+
+    listener::listener(io_context &ctx) : ctx_(ctx) {
+    }
+
+    void listener::_handle(context_data_core &context) {
+#ifdef _WIN32
+        free(context.buffer_);
+#else
+        context.sock_ = accept(socket_, nullptr, nullptr);
+#endif
+        if(context.sock_ == INVALID_SOCKET)
+            return;
+        std::shared_ptr<io_handler> sock = _accepted(context.sock_);
+        sock->_serve();
+    }
+
+    std::shared_ptr<io_handler> listener::_accepted(SOCKET_TYPE sock) {
+        return std::make_shared<socket>(ctx_, sock);
+    }
+
+    void listener::_serve() {
 #ifdef _WIN32
         context->buffer_ = malloc((sizeof(sockaddr_in) + 16) * 2);
         context->sock_ = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);;
@@ -73,34 +94,10 @@ namespace obelisk {
 #elif defined(__linux__)
         // TODO: Linux
 #else
-        struct kevent change{};
-        EV_SET(&change, socket_, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, &passive_);
-        ctx_.append_event(change);
+        EV_SET(&event_, socket_, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, &passive_);
+        if (kevent(ctx_.handle(), &event_, 1, nullptr, 0, nullptr) == -1)
+            THROW(obelisk::network_exception, strerror(errno), "Obelisk");
 #endif
-
-
-
-    }
-
-    listener::listener(io_context &ctx) : ctx_(ctx) {
-        passive_.handler_ = this;
-    }
-
-    void listener::_handle(context_data_core &context) {
-#ifdef _WIN32
-        free(context.buffer_);
-#else
-        context.sock_ = accept(socket_, nullptr, nullptr);
-#endif
-        if(context.sock_ == INVALID_SOCKET)
-            return;
-
-        if (callback_)
-            callback_(std::make_shared<socket>(ctx_, context.sock_));
-    }
-
-    void listener::set_handler(listener_callback callback) {
-        callback_ = std::move(callback);
     }
 
 } // obelisk

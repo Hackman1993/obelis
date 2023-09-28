@@ -7,34 +7,39 @@
 
 #ifndef OBELISK_LISTENER_H
 #define OBELISK_LISTENER_H
+
 #include <string>
 #include <functional>
 #include "ip_address.h"
 #include "io_handler.h"
 #include "impl/passive_data.h"
 #include "impl/platform_selector.h"
+
 namespace obelisk {
 
     class io_context;
+
     class socket;
 
-    using listener_callback = std::function<void (std::shared_ptr<socket>)>;
-    class listener : public io_handler{
+    class listener : public io_handler {
     public:
-        explicit listener(io_context& ctx);
-        void listen(unsigned short port, const std::string& addr);
-        void listen(const ip_address& addr, unsigned short port);
-        void _handle(context_data_core &handler);
-        void set_handler(listener_callback callback);
+        explicit listener(io_context &ctx);
 
+        void listen(unsigned short port, const std::string &addr);
+
+        void listen(const ip_address &addr, unsigned short port);
+
+        virtual void _handle(context_data_core &handler) override;
+        void _serve() override;
     protected:
-        io_context& ctx_;
+        virtual std::shared_ptr<io_handler> _accepted(SOCKET_TYPE type);
+        io_context &ctx_;
         context_data_core passive_;
 #ifdef _WIN32
 #elif defined(__linux__)
 #else
+        struct kevent event_{};
 #endif
-        listener_callback callback_;
         SOCKET_TYPE socket_ = INVALID_SOCKET;
     };
 

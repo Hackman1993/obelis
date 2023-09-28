@@ -6,17 +6,13 @@
 #include "core/ip_address.h"
 #include "core/impl/platform_selector.h"
 #include "core/io_context.h"
-#include "http_server.h"
+#include "http/http_server.h"
 #include <thread>
 #include <vector>
-
-class test{
-    ~test(){
-        std::cout << "Free" << std::endl;
-    }
-};
+#include <sahara/log/log.h>
 int main()
 {
+    sahara::log::initialize();
     try{
         /* getaddrinfo() returns a list of address structures.
            Try each address until we successfully bind(2).
