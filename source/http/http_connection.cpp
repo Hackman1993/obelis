@@ -48,8 +48,8 @@ namespace obelisk {
         }
         if(!result)
             return false;
-        if(bytes_reamains_ == 0 && request_received_){
-            request_received_(*request_);
+        if(bytes_reamains_ == 0){
+            _e_request_received();
         }
 
         return result;
@@ -113,5 +113,10 @@ namespace obelisk {
 
     void http_connection::on_request_received(const std::function<void(http_request &)> &callback) {
         request_received_ = callback;
+    }
+
+    void http_connection::_e_request_received() {
+        if(request_received_)
+            request_received_(*request_);
     }
 } // obelisk

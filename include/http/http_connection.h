@@ -21,6 +21,7 @@ namespace obelisk {
         void _e_connected() override;
         bool _e_data_recved() override;
         void _e_disconnected() override;
+        virtual void _e_request_received();
 
         bool _handle_header();
         bool _handle_body();
