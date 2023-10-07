@@ -29,7 +29,7 @@ namespace obelisk {
 
         void listen(const ip_address &addr, unsigned short port);
 
-        virtual void _handle(context_data_core &handler) override;
+        void _handle(context_data_core &handler) override;
         void _serve() override;
     protected:
         virtual std::shared_ptr<io_handler> _accepted(SOCKET_TYPE type);
@@ -37,6 +37,7 @@ namespace obelisk {
         context_data_core passive_;
 #ifdef _WIN32
 #elif defined(__linux__)
+
 #else
         struct kevent event_{};
 #endif

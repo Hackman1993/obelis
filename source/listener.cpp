@@ -92,7 +92,11 @@ namespace obelisk {
                 THROW(obelisk::network_exception, strerror(errno), "Obelisk");
         }
 #elif defined(__linux__)
-        // TODO: Linux
+        epoll_event ev{};
+        ev.events = EPOLLIN |EPOLLET;
+        ev.data.ptr = &passive_;
+        if(epoll_ctl(ctx_.handle(), EPOLL_CTL_ADD,socket_,&ev)!=0)
+            THROW(obelisk::network_exception, strerror(errno), "Obelisk");
 #else
         EV_SET(&event_, socket_, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, &passive_);
         if (kevent(ctx_.handle(), &event_, 1, nullptr, 0, nullptr) == -1)

@@ -5,6 +5,7 @@
  * @created_at 2023-08-31
 ***********************************************************************************************************************/
 #include <iostream>
+#include <sahara/log/log.h>
 #include "core/io_context.h"
 #include "core/impl/platform_selector.h"
 #include "exception/network_exception.h"
@@ -14,7 +15,7 @@
 namespace obelisk {
     io_context::io_context(std::uint32_t threads) {
 #if defined(__linux__)
-        //TODO: Linux
+        ctx_ = epoll_create1(EPOLL_CLOEXEC);
 #elif defined(_WIN32)
         WSAData wsd{};
         WSAStartup(MAKEWORD(2, 2), &wsd);
@@ -39,7 +40,25 @@ namespace obelisk {
             }
         }
 #elif defined(__linux__)
-        //TODO:Linux
+        while(true){
+            epoll_event ev{};
+            int ret = epoll_wait(ctx_, &ev,1,-1);
+            if(ret == -1){
+                LOG_DEBUG("DEBUG:{}", strerror(LASTERROR));
+                continue;
+            }
+            ctxd = static_cast<context_data_core *>(ev.data.ptr);
+            if(ctxd && ctxd->handler_)
+            {
+                ctxd->lock_.lock();
+                if(EPOLLRDHUP == (ev.events & EPOLLRDHUP))
+                {
+                    ctxd->event_.type_ = event_type::DISCONNECTED;
+                }
+                ctxd->handler_->_handle(*ctxd);
+                ctxd->lock_.unlock();
+            }
+        }
 #else
         int ready_cnt = 0;
         while(ready_cnt != -1){

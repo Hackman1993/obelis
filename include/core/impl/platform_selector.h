@@ -4,15 +4,23 @@
  * @description
  *      !!MUST DEFINE OBELISK_MAX_LISTEN_CONNECTION
  *      !!MUST DEFINE SOCKET_TYPE
+ *      !!MUST DEFINE INVALID_SOCKET
  * @created_at 2023-08-30
 ***********************************************************************************************************************/
 
 
 #if defined(__linux__)
 #include <netdb.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <sys/epoll.h>
+#define SOCKET_TYPE int
+#define INVALID_SOCKET (-1)
+#define CONTEXT_TYPE int
+#define INVALID_CONTEXT int
+#define LASTERROR errno
 #elif defined(_WIN32)
 #include <winsock2.h>
 #include <Ws2tcpip.h>

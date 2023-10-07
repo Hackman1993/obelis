@@ -13,17 +13,16 @@
 #include "io_context.h"
 #include "impl/platform_selector.h"
 #include <memory>
-#include <strstream>
 #include <boost/asio/streambuf.hpp>
 
 namespace obelisk {
     class socket : public io_handler {
     public:
         socket(io_context &context, SOCKET_TYPE sock);
-        virtual ~socket();
+        ~socket() override;
         void _serve() override;
         void close();
-        virtual void _handle(context_data_core &base) override;
+        void _handle(context_data_core &base) override;
 
     protected:
         virtual void _e_connected();

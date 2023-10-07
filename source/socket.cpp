@@ -38,8 +38,20 @@ namespace obelisk {
 
     socket::~socket() {
         std::cout << "SOCKET Released" << std::endl;
+#ifdef _WIN32
+
+#elif defined(__linux__)
+        epoll_event ev{};
+        ev.events = EPOLLIN |EPOLLET|EPOLLRDHUP;
+        ev.data.ptr = &ctx_data_;
+        epoll_ctl(ctx_.handle(), EPOLL_CTL_DEL,socket_,&ev);
+        ::close(socket_);
+#else
         EV_SET(&event_, socket_, EVFILT_READ, EV_DELETE, 0, 0, &ctx_data_);
         kevent(ctx_.handle(), &event_, 1, nullptr, 0, nullptr);
+        ::close(socket_);
+#endif
+
     }
 
     void socket::_serve() {
@@ -47,6 +59,11 @@ namespace obelisk {
         ctx_data_.handler_ = shared_from_this();
 #ifdef _WIN32
 #elif defined(__linux__)
+        epoll_event ev{};
+        ev.events = EPOLLIN |EPOLLET|EPOLLRDHUP;
+        ev.data.ptr = &ctx_data_;
+        if(epoll_ctl(ctx_.handle(), EPOLL_CTL_ADD,socket_,&ev)!=0)
+            THROW(obelisk::network_exception, strerror(errno), "Obelisk");
 #else
         EV_SET(&event_, socket_, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, &ctx_data_);
         if (kevent(ctx_.handle(), &event_, 1, nullptr, 0, nullptr) == -1)
@@ -70,7 +87,6 @@ namespace obelisk {
     void socket::close() {
         _e_disconnected();
         ctx_data_.handler_ = nullptr;
-        ::close(socket_);
     }
 
 
