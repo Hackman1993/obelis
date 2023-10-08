@@ -25,6 +25,8 @@ namespace obelisk {
     public:
         explicit listener(io_context &ctx);
 
+        void close() override;
+
         void listen(unsigned short port, const std::string &addr);
 
         void listen(const ip_address &addr, unsigned short port);

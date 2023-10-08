@@ -14,26 +14,36 @@
 namespace obelisk {
     socket::socket(io_context &context, SOCKET_TYPE sock) : ctx_(context), socket_(sock) {
         ctx_data_.sock_ = sock;
+        ctx_data_.recv_buf_.len = 1*1024*1024;
+        ctx_data_.recv_buf_.buf = static_cast<CHAR *>(malloc(ctx_data_.recv_buf_.len));
+        socket_setting::set_nonblocking(socket_);
     }
 
     void socket::_handle(context_data_core &base) {
+#ifdef WIN32
+        if(base.bytes_transferred_> 0) {
+            // TODO: Fill Windows Data Handle
+        }
+        _serve();
+#else
         if (base.event_.type_ == event_type::DISCONNECTED) {
             close();
             return;
         }
         char data[1024 * 256] = {0};
-        ssize_t recved;
+        std::int32_t recved;
         do {
             recved = recv(socket_, reinterpret_cast<char *>(&data), 1024 * 256, 0);
             if (recved > 0) {
                 buffer_.sputn(data, recved);
                 if (buffer_.size() > expect_size_) {
-                    if(!_e_data_recved()){
+                    if (!_e_data_recved()) {
                         close();
                     }
                 }
             }
         } while (recved > 0);
+#endif
     }
 
     socket::~socket() {
@@ -51,13 +61,24 @@ namespace obelisk {
         kevent(ctx_.handle(), &event_, 1, nullptr, 0, nullptr);
         ::close(socket_);
 #endif
-
     }
 
     void socket::_serve() {
-        socket_setting::set_nonblocking(socket_);
         ctx_data_.handler_ = shared_from_this();
 #ifdef _WIN32
+        if (CreateIoCompletionPort((HANDLE) ctx_data_.sock_, ctx_.handle(), 0, 0) == NULL) {
+            auto err = WSAGetLastError();
+            if(err == ERROR_INVALID_PARAMETER){
+                ctx_data_.shutting_down = true;
+                return;
+            }
+            THROW(obelisk::network_exception, strerror(errno), "Obelisk");
+        }
+        DWORD flags = 0;
+        auto ret = WSARecv(ctx_data_.sock_, &ctx_data_.recv_buf_, 1, NULL, &flags,reinterpret_cast<LPWSAOVERLAPPED>(&ctx_data_), NULL);
+        auto err = WSAGetLastError();
+        if(ret == SOCKET_ERROR && err != ERROR_IO_PENDING)
+            THROW(obelisk::network_exception, strerror(errno), "Obelisk");
 #elif defined(__linux__)
         epoll_event ev{};
         ev.events = EPOLLIN |EPOLLET|EPOLLRDHUP;
@@ -91,9 +112,9 @@ namespace obelisk {
 
     std::size_t socket::send(unsigned char *data, std::size_t length) {
         auto bytes_sent = 0;
-        while(bytes_sent < length){
-            bytes_sent += ::send(socket_, &data[bytes_sent], length, 0);
-            if(bytes_sent == -1){
+        while (bytes_sent < length) {
+            bytes_sent += ::send(socket_, (char *) &data[bytes_sent], length, 0);
+            if (bytes_sent == -1) {
                 return -1;
             }
         }

@@ -131,7 +131,7 @@ namespace obelisk {
         if(send((unsigned char *) http_header.c_str(), http_header.size()) == -1)
             return;
         else if(response->content()){
-            auto &content_stream = response->content();
+            auto content_stream = response->content();
         }
 
     }

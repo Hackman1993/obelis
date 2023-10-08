@@ -10,6 +10,7 @@ namespace obelisk {
     class socket_setting {
     public:
         static void set_nonblocking(SOCKET_TYPE sock);
+        static void close(SOCKET_TYPE sock);
     };
 
 } // obelisk

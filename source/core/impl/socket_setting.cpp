@@ -14,4 +14,13 @@ namespace obelisk {
         fcntl(sock, F_SETFL, O_NONBLOCK);
 #endif
     }
+
+    void socket_setting::close(SOCKET_TYPE sock) {
+#ifdef _WIN32
+        closesocket(sock);
+#else
+        ::close(sock);
+#endif
+
+    }
 } // obelisk

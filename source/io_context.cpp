@@ -35,8 +35,13 @@ namespace obelisk {
         void *lpCompletionKey = nullptr;
         while (true) {
             if(GetQueuedCompletionStatus(ctx_, &lpNumberOfBytesTransferred, (PULONG_PTR) &lpCompletionKey, (LPOVERLAPPED *) &ctxd, INFINITE)){
+                ctxd->lock_.lock();
+                ctxd->bytes_transferred_ = lpNumberOfBytesTransferred;
                 if(ctxd->handler_)
                     ctxd->handler_->_handle(*ctxd);
+                ctxd->lock_.unlock();
+                if(ctxd->shutting_down)
+                    ctxd->handler_->close();
             }
         }
 #elif defined(__linux__)

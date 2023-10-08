@@ -60,11 +60,15 @@ namespace obelisk {
     }
 
     listener::listener(io_context &ctx) : ctx_(ctx) {
+#ifdef _WIN32
+        passive_.recv_buf_.len = (sizeof(sockaddr_in) + 16) * 2;
+        passive_.recv_buf_.buf = static_cast<CHAR *>(malloc(passive_.recv_buf_.len));
+#endif
+        passive_.event_.type_ = event_type::ACCEPTED;
     }
 
     void listener::_handle(context_data_core &context) {
 #ifdef _WIN32
-        free(context.buffer_);
 #else
         context.sock_ = accept(socket_, nullptr, nullptr);
 #endif
@@ -72,6 +76,9 @@ namespace obelisk {
             return;
         std::shared_ptr<io_handler> sock = _accepted(context.sock_);
         sock->_serve();
+#ifdef _WIN32
+        _serve();
+#endif
     }
 
     std::shared_ptr<io_handler> listener::_accepted(SOCKET_TYPE sock) {
@@ -80,13 +87,12 @@ namespace obelisk {
 
     void listener::_serve() {
 #ifdef _WIN32
-        context->buffer_ = malloc((sizeof(sockaddr_in) + 16) * 2);
-        context->sock_ = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);;
+        passive_.sock_ = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);;
         if (CreateIoCompletionPort((HANDLE) socket_, ctx_.handle(), 0, 0) == INVALID_HANDLE_VALUE)
             THROW(obelisk::network_exception, strerror(errno), "Obelisk");
-        if (!AcceptEx(socket_, context->sock_, context->buffer_,
+        if (!AcceptEx(socket_, passive_.sock_, passive_.recv_buf_.buf,
                       0, sizeof(sockaddr_in) + 16,
-                      sizeof(sockaddr_in) + 16, nullptr, (LPOVERLAPPED) context)) {
+                      sizeof(sockaddr_in) + 16, nullptr, (LPOVERLAPPED)&passive_)) {
             auto t=WSAGetLastError();
             if (WSAGetLastError() != ERROR_IO_PENDING)
                 THROW(obelisk::network_exception, strerror(errno), "Obelisk");
@@ -102,6 +108,10 @@ namespace obelisk {
         if (kevent(ctx_.handle(), &event_, 1, nullptr, 0, nullptr) == -1)
             THROW(obelisk::network_exception, strerror(errno), "Obelisk");
 #endif
+    }
+
+    void listener::close() {
+        socket_setting::close(socket_);
     }
 
 } // obelisk
