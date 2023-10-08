@@ -8,10 +8,12 @@
 #include "http/http_connection.h"
 #include "http/parser/http_parser.h"
 #include "http/parser/http_request.h"
+#include "exception/protocol_exception.h"
 #include <boost/algorithm/string.hpp>
 #include <sahara/log/log.h>
 #include <sahara/utils/uuid.h>
 #include <sstream>
+#include "http/response/http_response.h"
 namespace obelisk {
     http_connection::http_connection(io_context &ctx, SOCKET_TYPE sock) : socket(ctx, sock) {
         request_ = std::make_shared<http_request>(*this);
@@ -38,75 +40,76 @@ namespace obelisk {
     bool http_connection::_e_data_recved() {
         if(buffer_.size() <= 4){ return true; }
 
-        bool result;
-        if(!header_received_)
-        {
-            result =  _handle_header();
+        while(buffer_.size() > 0){
+            try {
+                bool result = header_received_? _handle_body() : _handle_header();
+                // If a function returns false, means all processable data has been processed
+                if(!result)
+                    return true;
+            } catch (protocol_exception & e){
+                return false;
+            }
         }
-        else{
-            result = _handle_body();
-        }
-        if(!result)
-            return false;
-        if(bytes_reamains_ == 0){
-            _e_request_received();
-        }
-
-        return result;
+        return true;
     }
 
     bool http_connection::_handle_header() {
         std::string_view received_data(boost::asio::buffer_cast<const char *>(buffer_.data()),buffer_.size());
         bool contains_header_eof = received_data.contains("\r\n\r\n");
         if(buffer_.size() > 10 * 1024 && !contains_header_eof)
-        {
-            LOG_DEBUG("Header Size Exceed, Shutting Down!{}", "");
-            return false;
-        }
-        if(!contains_header_eof) return true;
+            THROW(protocol_exception, "Header Size Exceed, Shutting Down!", "Obelisk");
+        if(!contains_header_eof) return false;
         auto separator = boost::algorithm::find_first(received_data, "\r\n\r\n");
         received_data = std::string_view(received_data.data(), separator.end() - received_data.begin());
-        auto parse_result = package_header_parse(received_data, request_.get());
-        if(!parse_result){
-            LOG_DEBUG("Invalid Package Header, Shutting Down!{}", "");
-            return false;
-        }
+        auto parse_result = package_header_parse(received_data, request_);
+        if(!parse_result)
+            THROW(protocol_exception, "Invalid Package Header, Shutting Down!", "Obelisk");
         buffer_.consume(received_data.size());
         if(request_->header_.headers_.contains("Content-Length") && request_->header_.headers_.contains("Content-Type")){
             request_->content_type_ = request_->header_.headers_["Content-Type"];
             request_->content_length_ = std::stoull(request_->header_.headers_["Content-Length"]);
             bytes_reamains_ = request_->content_length_;
+            // If Content-Type is form-data, then extract boundary
             if(request_->content_type_.contains("multipart/form-data")){
-                if(!boundary_parse(request_->content_type_, request_.get())){
-                    LOG_DEBUG("Extract Boundary With multipart/form-data Header Failed, Shutting Down!{}", "");
-                    return false;
-                }
+                if(!boundary_parse(request_->content_type_, request_))
+                    THROW(protocol_exception, "Extract Boundary With multipart/form-data Header Failed, Shutting Down!", "Obelisk");
             }
         }
         if(request_->content_length_ > 0){
             header_received_ = true;
+            if(request_->content_length_ > 1*1024*1024)
+            {
+                // If content length greater than 1 MB, Create a filestream
+                std::string path = "./" + sahara::utils::uuid::generate();
+                request_->raw_ = std::make_shared<http_temp_fstream>(path);
+            }
+            else{
+                // If content length <= 1MB, Create a memory buffer
+                request_->raw_ = std::make_shared<std::stringstream>();
+            }
         }
         return true;
     }
 
     bool http_connection::_handle_body() {
         std::string_view received_data(boost::asio::buffer_cast<const char *>(buffer_.data()),buffer_.size());
-        if(request_->content_length_ > 1*1024*1024)
-        {
-            std::string path = "./" + sahara::utils::uuid::generate();
-            data_buffer_ = std::make_shared<http_temp_fstream>(path);
-        }else{
-            data_buffer_ = std::make_shared<std::stringstream>();
-        }
+        // Calculate data should be written, prevent buffer contains some part of content and a new request header
         std::uint32_t bytes_write = std::min<std::uint64_t>(received_data.size(), bytes_reamains_);
         if(bytes_write > 0){
-            data_buffer_->write(received_data.data(), bytes_write);
+            request_->raw_->write(received_data.data(), bytes_write);
             buffer_.consume(bytes_write);
             bytes_reamains_ -= bytes_write;
         }
+        // if request has been fully received, flush data and reset the header_received flag
         if(bytes_reamains_ == 0){
-            data_buffer_->flush();
+            request_->raw_->flush();
             header_received_ = false;
+
+            http_body_parser(request_);
+            _e_request_received();
+
+            // TODO: Handle Request
+            request_ = nullptr;
         }
         return true;
     }
@@ -118,5 +121,18 @@ namespace obelisk {
     void http_connection::_e_request_received() {
         if(request_received_)
             request_received_(*request_);
+        LOG_DEBUG("Request Received{}", "");
+    }
+
+    void http_connection::write_response(const std::shared_ptr<http_response>& response) {
+        if(response)
+            return;
+        std::string http_header = response->serialize_header();
+        if(send((unsigned char *) http_header.c_str(), http_header.size()) == -1)
+            return;
+        else if(response->content()){
+            auto &content_stream = response->content();
+        }
+
     }
 } // obelisk

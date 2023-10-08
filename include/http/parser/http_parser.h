@@ -13,8 +13,13 @@ namespace obelisk {
 
     class socket;
 
-    bool boundary_parse(std::string_view  data, http_request *request);
-    bool package_header_parse(std::string_view data, http_request *request);
+    bool boundary_parse(std::string_view  data, const std::shared_ptr<http_request>& request);
+    bool package_header_parse(std::string_view data, std::shared_ptr<http_request> request);
+
+    bool http_body_parser(std::shared_ptr<http_request> &request);
+    bool http_multipart_body_parser(std::shared_ptr<http_request> &request);
+    bool http_urlencoded_param_parser(std::shared_ptr<http_request> &request, std::string_view data);
+
 
 } // obelisk
 

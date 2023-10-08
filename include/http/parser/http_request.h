@@ -6,7 +6,11 @@
 #define OBELISK_HTTP_REQUEST_H
 #include <string>
 #include <memory>
+#include <utility>
+#include <vector>
 #include <fstream>
+#include <variant>
+#include <filesystem>
 #include <unordered_map>
 namespace obelisk {
     class http_connection;
@@ -31,13 +35,29 @@ namespace obelisk {
         std::string path_;
     };
 
+    struct http_file{
+        http_file(std::string tmp_path, std::string filename): temp_path_(std::move(tmp_path)), filename_(std::move(filename)){}
+        std::string temp_path_;
+        std::string filename_;
+        ~http_file(){
+            if(std::filesystem::exists(temp_path_))
+                std::filesystem::remove(temp_path_);
+        }
+    };
+
     class http_request{
     public:
         explicit http_request(http_connection& sock_);
+
+        void set_param(const std::string& name, const std::string& value);
         http_header header_;
+        std::string path_;
         std::string boundary_;
         std::string content_type_;
         std::uint64_t content_length_ = 0;
+        std::shared_ptr<std::iostream> raw_;
+        std::unordered_map<std::string, std::vector<std::string>> params_;
+        std::unordered_map<std::string, std::shared_ptr<http_file>> filebag_;
     protected:
         http_connection& socket_;
     };

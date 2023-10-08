@@ -11,6 +11,14 @@ namespace obelisk {
     http_request::http_request(http_connection &sock_) : socket_(sock_){
     }
 
+    void http_request::set_param(const std::string& name, const std::string& value) {
+        if(params_.contains(name)){
+            params_[name].push_back(value);
+        }else{
+            params_[name] = std::vector<std::string>{value};
+        }
+    }
+
     http_temp_fstream::http_temp_fstream(std::string path): path_(std::move(path)) {
         std::ofstream fstream(path_);
         fstream.close();

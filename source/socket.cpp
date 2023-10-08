@@ -89,5 +89,15 @@ namespace obelisk {
         ctx_data_.handler_ = nullptr;
     }
 
+    std::size_t socket::send(unsigned char *data, std::size_t length) {
+        auto bytes_sent = 0;
+        while(bytes_sent < length){
+            bytes_sent += ::send(socket_, &data[bytes_sent], length, 0);
+            if(bytes_sent == -1){
+                return -1;
+            }
+        }
+    }
+
 
 } // obelisk
