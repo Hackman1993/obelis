@@ -4,7 +4,7 @@
 
 #include <cstdint>
 #include "core/impl/socket_setting.h"
-
+#include "core/impl/platform_selector.h"
 namespace obelisk {
     void socket_setting::set_nonblocking(SOCKET_TYPE sock) {
 #ifdef _WIN32

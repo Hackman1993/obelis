@@ -53,7 +53,7 @@ namespace obelisk {
 
     std::string http_response::serialize_header() {
         std::ostringstream result;
-        result << "HTTP/1.1" << resp_status_map_[resp_code_] << "\r\n";
+        result << "HTTP/1.1 " << resp_status_map_[resp_code_] << "\r\n";
         for(auto &header: headers_){
             result << header.first << ": " << header.second << "\r\n";
         }

@@ -14,6 +14,8 @@
 #include <sahara/utils/uuid.h>
 #include <sstream>
 #include "http/response/http_response.h"
+#include "http/response/json_response.h"
+
 namespace obelisk {
     http_connection::http_connection(io_context &ctx, SOCKET_TYPE sock) : socket(ctx, sock) {
         request_ = std::make_shared<http_request>(*this);
@@ -114,24 +116,44 @@ namespace obelisk {
         return true;
     }
 
-    void http_connection::on_request_received(const std::function<void(http_request &)> &callback) {
+    void http_connection::on_request_received(const std::function<std::shared_ptr<http_response>(std::shared_ptr<http_request>&)> &callback) {
         request_received_ = callback;
     }
 
     void http_connection::_e_request_received() {
+        std::shared_ptr<http_response> resp;
         if(request_received_)
-            request_received_(*request_);
+            resp = request_received_(request_);
+        if(resp)
+            write_response(resp);
+        else{
+            resp = std::make_shared<json_response>(boost::json::object({{"code",    404},
+                                                                        {"message", "Not Found"},
+                                                                        {"data",    boost::json::value()}}), 404);
+            resp->add_header("Connection", "close");
+        }
+        write_response(resp);
+        ::close(socket_);
+//        if(!request_->header_.headers_.contains("Connection") || request_->header_.headers_["Connection"] != "keep-alive"){
+//
+//        }
         LOG_DEBUG("Request Received{}", "");
     }
 
     void http_connection::write_response(const std::shared_ptr<http_response>& response) {
-        if(response)
+        if(!response)
             return;
         std::string http_header = response->serialize_header();
         if(send((unsigned char *) http_header.c_str(), http_header.size()) == -1)
             return;
-        else if(response->content()){
+        if(response->content()){
             auto content_stream = response->content();
+            content_stream->seekg(std::istream::beg);
+            unsigned char data[1*1024*1024] = {0};
+            while(!content_stream->eof()){
+                auto bytes_read = content_stream->readsome(reinterpret_cast<char *>(data), 1 * 1024 * 1024);
+                send(data, bytes_read);
+            }
         }
 
     }

@@ -14,8 +14,10 @@
 namespace obelisk {
     socket::socket(io_context &context, SOCKET_TYPE sock) : ctx_(context), socket_(sock) {
         ctx_data_.sock_ = sock;
+#ifdef _WIN32
         ctx_data_.recv_buf_.len = 1*1024*1024;
         ctx_data_.recv_buf_.buf = static_cast<CHAR *>(malloc(ctx_data_.recv_buf_.len));
+#endif
         socket_setting::set_nonblocking(socket_);
     }
 
@@ -106,18 +108,21 @@ namespace obelisk {
     }
 
     void socket::close() {
+        std::cout << "CLOSE" << std::endl;
         _e_disconnected();
         ctx_data_.handler_ = nullptr;
     }
 
-    std::size_t socket::send(unsigned char *data, std::size_t length) {
-        auto bytes_sent = 0;
-        while (bytes_sent < length) {
-            bytes_sent += ::send(socket_, (char *) &data[bytes_sent], length, 0);
+    std::int32_t socket::send(unsigned char *data, std::size_t length) {
+        long total_sent = 0;
+        while (total_sent < length) {
+            auto bytes_sent = ::send(socket_, (char *) &data[total_sent], length, 0);
             if (bytes_sent == -1) {
                 return -1;
             }
+            total_sent += bytes_sent;
         }
+        return total_sent;
     }
 
 

@@ -19,11 +19,16 @@ namespace obelisk {
                 });
             accepted->on_disconnected([&]() { this->alive_count_ -= 1;
                 std::cout<< "Alive Connection" << this->alive_count_ << std::endl;});
+            accepted->on_request_received(std::bind(&http_server::on_request_,this, std::placeholders::_1));
         });
     }
 
     void http_server::listen(const std::string& address, unsigned short port) {
         listener_->listen(port, address);
         listener_->_serve();
+    }
+
+    std::shared_ptr<http_response> http_server::on_request_(std::shared_ptr<http_request>& request) {
+        return nullptr;
     }
 } // obelisk

@@ -21,8 +21,8 @@ namespace obelisk {
         socket(io_context &context, SOCKET_TYPE sock);
         ~socket() override;
 
-        void close();
-        std::size_t send(unsigned char* data, std::size_t length);
+        void close() override;
+        std::int32_t send(unsigned char* data, std::size_t length);
         void _serve() override;
         void _handle(context_data_core &base) override;
 

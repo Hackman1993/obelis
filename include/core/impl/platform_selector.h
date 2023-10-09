@@ -12,6 +12,7 @@
 #if defined(__linux__)
 #include <netdb.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>

@@ -16,7 +16,7 @@ namespace obelisk {
         http_connection(io_context& ctx, SOCKET_TYPE sock);
         void on_connected(const std::function<void ()>& callback);
         void on_disconnected(const std::function<void ()>& callback);
-        void on_request_received(const std::function<void(http_request&)>& callback);
+        void on_request_received(const std::function<std::shared_ptr<http_response>(std::shared_ptr<http_request>&)>& callback);
 
         void write_response(const std::shared_ptr<http_response>& response);
 
@@ -31,7 +31,7 @@ namespace obelisk {
 
         std::function<void ()> connected_;
         std::function<void ()> disconnected_;
-        std::function<void (http_request&)> request_received_;
+        std::function<std::shared_ptr<http_response> (std::shared_ptr<http_request>&)> request_received_;
 
         std::shared_ptr<http_request> request_;
         std::atomic_bool header_received_ = false;
