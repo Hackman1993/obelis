@@ -100,7 +100,7 @@ namespace obelisk {
     }
 
     bool socket::_e_data_recved() {
-        return false;
+        return true;
     }
 
     void socket::_e_disconnected() {

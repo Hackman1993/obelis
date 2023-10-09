@@ -23,12 +23,14 @@ int main()
         server.listen("0.0.0.0", 3308);
         std::vector<std::thread> threads;
         threads.reserve(3);
-        for(int i=0; i < 3; i++){
-            threads.emplace_back([&](){
-                context.run();
-            });
-        }
-        while (true);
+
+        context.run();
+//        for(int i=0; i < 3; i++){
+//            threads.emplace_back([&](){
+//                context.run();
+//            });
+//        }
+//        while (true);
 
 //        int listenfd, connfd, efd, ret;
 //        listenfd = socket(AF_INET, SOCK_STREAM, 0);
