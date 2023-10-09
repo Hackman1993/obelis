@@ -19,12 +19,11 @@ namespace obelisk {
         explicit http_server(io_context& context);
         void listen(const std::string& address, unsigned short port);
     protected:
-
-        virtual std::shared_ptr<http_response> on_request_(std::shared_ptr<http_request>& request);
         io_context& ctx_;
-        std::shared_ptr<http_accepter> listener_;
         std::atomic_int32_t alive_count_;
+        std::shared_ptr<http_accepter> listener_;
         std::vector<std::shared_ptr<socket>> sock_;
+        virtual std::shared_ptr<http_response> on_request_(std::shared_ptr<http_request>& request);
     };
 
 } // obelisk

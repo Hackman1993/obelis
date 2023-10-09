@@ -7,11 +7,37 @@
 #include "core/impl/platform_selector.h"
 #include "core/io_context.h"
 #include "http/http_server.h"
+#include "http/router/route_item.h"
 #include <thread>
 #include <vector>
 #include <sahara/log/log.h>
+
+class A{
+public:
+    virtual ~A() {};
+};
+class B: public A{
+};
+class C: public A{};
+class D: public B{};
 int main()
 {
+    std::shared_ptr<A> test = std::make_shared<D>();
+
+    A* data1 = dynamic_cast<A*>(test.get());
+    B* data2 = dynamic_cast<B*>(test.get());
+    C* data3 = dynamic_cast<C*>(test.get());
+    D* data4 = dynamic_cast<D*>(test.get());
+
+    int a=0;
+
+
+
+//    obelisk::http_router router;
+//    router.add_router("/test/{bbq}",[](std::shared_ptr<obelisk::http_request>&)-> std::shared_ptr<obelisk::http_response>{});
+//    router
+
+
     sahara::log::initialize();
     try{
         /* getaddrinfo() returns a list of address structures.
