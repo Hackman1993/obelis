@@ -37,8 +37,8 @@ namespace obelisk {
         do {
             recved = recv(socket_, reinterpret_cast<char *>(&data), 1024 * 256, 0);
             if (recved > 0) {
-                buffer_.sputn(data, recved);
-                if (buffer_.size() > expect_size_) {
+                inbuffer_.sputn(data, recved);
+                if (inbuffer_.size() > expect_size_) {
                     if (!_e_data_recved()) {
                         close();
                     }
@@ -49,7 +49,6 @@ namespace obelisk {
     }
 
     socket::~socket() {
-        std::cout << "SOCKET Released" << std::endl;
 #ifdef _WIN32
 
 #elif defined(__linux__)
@@ -100,7 +99,7 @@ namespace obelisk {
     }
 
     bool socket::_e_data_recved() {
-        return true;
+        return false;
     }
 
     void socket::_e_disconnected() {
@@ -108,7 +107,6 @@ namespace obelisk {
     }
 
     void socket::close() {
-        std::cout << "CLOSE" << std::endl;
         _e_disconnected();
         ctx_data_.handler_ = nullptr;
     }
@@ -116,8 +114,9 @@ namespace obelisk {
     std::int32_t socket::send(unsigned char *data, std::size_t length) {
         long total_sent = 0;
         while (total_sent < length) {
-            auto bytes_sent = ::send(socket_, (char *) &data[total_sent], length, 0);
+            auto bytes_sent = ::send(socket_, (char *) &data[total_sent], length - total_sent, 0);
             if (bytes_sent == -1) {
+                if(errno == EAGAIN) continue;
                 return -1;
             }
             total_sent += bytes_sent;

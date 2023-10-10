@@ -10,8 +10,8 @@ namespace obelisk {
 
     class json_response : public http_response{
     public:
-        json_response(const boost::json::object& object, std::size_t code);
-        json_response(const boost::json::array& object, std::size_t  code);
+        json_response(const boost::json::object& object, EHTTP_RESP_STATUS code);
+        json_response(const boost::json::array& object, EHTTP_RESP_STATUS  code);
     };
 
 } // obelisk

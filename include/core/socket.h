@@ -32,7 +32,8 @@ namespace obelisk {
         virtual void _e_disconnected();
         io_context &ctx_;
         SOCKET_TYPE socket_;
-        boost::asio::streambuf buffer_;
+        boost::asio::streambuf inbuffer_;
+        boost::asio::streambuf outbuffer_;
         std::atomic<std::uint32_t> expect_size_;
         context_data_core ctx_data_{};
 #ifdef _WIN32

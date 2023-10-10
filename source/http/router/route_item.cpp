@@ -8,7 +8,7 @@
 #include "http/router/route_item.h"
 #include <boost/spirit/home/x3.hpp>
 #include <boost/fusion/adapted/struct.hpp>
-#include "exception/route_exception.h"
+#include "http/exception/route_exception.h"
 #include <regex>
 #include <iostream>
 BOOST_FUSION_ADAPT_STRUCT(obelisk::route_param, name_, static_);
@@ -51,5 +51,10 @@ namespace obelisk {
             available_method_.emplace(method, true);
         }
         return *this;
+    }
+
+    std::shared_ptr<http_response> route_item::handle(std::shared_ptr<http_request> &request) {
+        if(handler_)
+            return handler_(request);
     }
 } // obelisk

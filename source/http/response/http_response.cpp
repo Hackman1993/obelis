@@ -6,7 +6,7 @@
 #include "http/response/http_response.h"
 
 namespace obelisk {
-    std::unordered_map<http_response::EHTTP_RESP_STATUS, std::string> http_response::resp_status_map_{
+    std::unordered_map<EHTTP_RESP_STATUS, std::string> http_response::resp_status_map_{
             {EST_CONTINUE, "100 Continue"},
             {EST_OK, "200 OK"},
             {EST_CREATED, "201 Created"},
@@ -43,8 +43,7 @@ namespace obelisk {
 
     };
 
-    http_response::http_response(unsigned int code) : http_response(EHTTP_RESP_STATUS(code)){}
-    http_response::http_response(http_response::EHTTP_RESP_STATUS code): resp_code_(code) {}
+    http_response::http_response(EHTTP_RESP_STATUS code): resp_code_(code) {}
 
 
     void http_response::add_header(const std::string &name, const std::string &value) {
@@ -63,5 +62,13 @@ namespace obelisk {
 
     std::shared_ptr<std::istream> http_response::content() {
         return content_;
+    }
+
+    std::uint64_t http_response::content_length() {
+        return content_length_;
+    }
+
+    bool http_response::has_header(const std::string &header) {
+        return headers_.contains(header);
     }
 } // obelisk

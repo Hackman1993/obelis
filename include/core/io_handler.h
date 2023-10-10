@@ -20,9 +20,7 @@ namespace obelisk {
         virtual void _handle(context_data_core &) = 0;
         virtual void _serve() = 0;
         virtual ~io_handler() = default;
-        virtual void close() {
-            std::cout << "CLOSE IO" << std::endl;
-        };
+        virtual void close() = 0;
     };
 
 } // obelisk

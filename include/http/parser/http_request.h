@@ -57,6 +57,7 @@ namespace obelisk {
         std::uint64_t content_length_ = 0;
         std::shared_ptr<std::iostream> raw_;
         std::unordered_map<std::string, std::vector<std::string>> params_;
+        std::unordered_map<std::string, std::string> route_params_;
         std::unordered_map<std::string, std::shared_ptr<http_file>> filebag_;
     protected:
         http_connection& socket_;

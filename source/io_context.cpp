@@ -65,10 +65,12 @@ namespace obelisk {
             }
         }
 #else
-        int ready_cnt = 0;
-        while(ready_cnt != -1){
+        while(true){
             struct kevent evt{};
-            ready_cnt = kevent(ctx_, nullptr, 0, &evt, 1, nullptr);
+            int ready_cnt = kevent(ctx_, nullptr, 0, &evt, 1, nullptr);
+            if((ready_cnt == -1 && errno == EINTR) || ready_cnt == 0) {
+                continue;
+            }
             if(ready_cnt ==1)
             {
                 ctxd = (context_data_core *)evt.udata;

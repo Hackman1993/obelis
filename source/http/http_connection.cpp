@@ -15,6 +15,7 @@
 #include <sstream>
 #include "http/response/http_response.h"
 #include "http/response/json_response.h"
+#include "debug/cost_timer.h"
 
 namespace obelisk {
     http_connection::http_connection(io_context &ctx, SOCKET_TYPE sock) : socket(ctx, sock) {
@@ -40,9 +41,9 @@ namespace obelisk {
     }
 
     bool http_connection::_e_data_recved() {
-        if (buffer_.size() <= 4) { return true; }
+        if (inbuffer_.size() <= 4) { return true; }
 
-        while (buffer_.size() > 0) {
+        while (inbuffer_.size() > 0) {
             try {
                 bool result = header_received_ ? _handle_body() : _handle_header();
                 // If a function returns false, means all processable data has been processed
@@ -57,9 +58,9 @@ namespace obelisk {
     }
 
     bool http_connection::_handle_header() {
-        std::string_view received_data(boost::asio::buffer_cast<const char *>(buffer_.data()), buffer_.size());
+        std::string_view received_data(boost::asio::buffer_cast<const char *>(inbuffer_.data()), inbuffer_.size());
         bool contains_header_eof = received_data.contains("\r\n\r\n");
-        if (buffer_.size() > 10 * 1024 && !contains_header_eof)
+        if (inbuffer_.size() > 10 * 1024 && !contains_header_eof)
             THROW(protocol_exception, "Header Size Exceed, Shutting Down!", "Obelisk");
         if (!contains_header_eof) return false;
         auto separator = boost::algorithm::find_first(received_data, "\r\n\r\n");
@@ -67,7 +68,7 @@ namespace obelisk {
         auto parse_result = package_header_parse(received_data, request_);
         if (!parse_result)
             THROW(protocol_exception, "Invalid Package Header, Shutting Down!", "Obelisk");
-        buffer_.consume(received_data.size());
+        inbuffer_.consume(received_data.size());
         if (request_->header_.headers_.contains("Content-Length") && request_->header_.headers_.contains("Content-Type")) {
             request_->content_type_ = request_->header_.headers_["Content-Type"];
             request_->content_length_ = std::stoull(request_->header_.headers_["Content-Length"]);
@@ -88,17 +89,23 @@ namespace obelisk {
                 // If content length <= 1MB, Create a memory buffer
                 request_->raw_ = std::make_shared<std::stringstream>();
             }
+            if(inbuffer_.size() > 0)
+                _handle_body();
+        }else {
+            _e_request_received();
+            request_ = std::make_shared<http_request>(*this);
         }
+
         return true;
     }
 
     bool http_connection::_handle_body() {
-        std::string_view received_data(boost::asio::buffer_cast<const char *>(buffer_.data()), buffer_.size());
+        std::string_view received_data(boost::asio::buffer_cast<const char *>(inbuffer_.data()), inbuffer_.size());
         // Calculate data should be written, prevent buffer contains some part of content and a new request header
         std::uint32_t bytes_write = std::min<std::uint64_t>(received_data.size(), bytes_reamains_);
         if (bytes_write > 0) {
             request_->raw_->write(received_data.data(), bytes_write);
-            buffer_.consume(bytes_write);
+            inbuffer_.consume(bytes_write);
             bytes_reamains_ -= bytes_write;
         }
         // if request has been fully received, flush data and reset the header_received flag
@@ -108,9 +115,7 @@ namespace obelisk {
 
             http_body_parser(request_);
             _e_request_received();
-
-            // TODO: Handle Request
-            request_ = nullptr;
+            request_ = std::make_shared<http_request>(*this);;
         }
         return true;
     }
@@ -125,13 +130,6 @@ namespace obelisk {
             resp = request_received_(request_);
         if (resp)
             write_response(resp);
-        else {
-            resp = std::make_shared<json_response>(boost::json::object({{"code",    404},
-                                                                        {"message", "Not Found"},
-                                                                        {"data",    boost::json::value()}}), 404);
-            resp->add_header("Connection", "close");
-        }
-        write_response(resp);
         if(!request_->header_.headers_.contains("Connection") || request_->header_.headers_["Connection"] != "keep-alive"){
             close();
         }
@@ -139,6 +137,7 @@ namespace obelisk {
     }
 
     void http_connection::write_response(const std::shared_ptr<http_response> &response) {
+        cost_timer timer;
         if (!response)
             return;
         std::string http_header = response->serialize_header();

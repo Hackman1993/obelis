@@ -36,6 +36,8 @@ namespace obelisk {
             request->path_ = target_raw.substr(0, target_raw.find_first_of('?'));
             std::string url_params = target_raw.substr(target_raw.find_first_of('?') + 1);
             http_urlencoded_param_parser(request, url_params);
+        }else{
+            request->path_ = target_raw;
         }
         return result;
     }

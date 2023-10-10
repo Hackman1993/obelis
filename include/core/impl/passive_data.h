@@ -16,7 +16,8 @@ namespace obelisk {
         ACCEPTED,
         CONNECTED,
         DISCONNECTED,
-        RECV,
+        WRITTEN,
+        RECEIVED,
     };
 
     struct event{
